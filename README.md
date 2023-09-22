@@ -1,4 +1,6 @@
-# Contrastive-Lift
+Code for "Contrastive Lift: 3D Object Instance Segmentation by Slow-Fast Contrastive Fusion" coming soon! [[Paper](https://arxiv.org/abs/2306.04633)]
+
+# Contrastive-Lift | NeurIPS 2023 Spotlight
 
 > **Yash Bhalgat**, Iro Laina, João F. Henriques, Andrew Zisserman, Andrea Vedaldi
 > 
@@ -7,4 +9,15 @@
 ![image](https://github.com/yashbhalgat/Contrastive-Lift/assets/8559512/30f48101-548d-4d79-857f-b64b64087e66)
 
 
-Code for "Contrastive Lift: 3D Object Instance Segmentation by Slow-Fast Contrastive Fusion": https://arxiv.org/abs/2306.04633
+# Citation
+If you find this work useful in your research, please cite our paper:
+```
+@inproceedings{
+  bhalgat2023contrastive,
+  title={Contrastive Lift: 3D Object Instance Segmentation by Slow-Fast Contrastive Fusion},
+  author={Bhalgat, Yash and Laina, Iro and Henriques, Jo{\~a}o F and Zisserman, Andrew and Vedaldi, Andrea},
+  booktitle={Thirty-seventh Conference on Neural Information Processing Systems},
+  year={2023},
+  url={https://openreview.net/forum?id=bbbbbov4Xu}
+}
+```
