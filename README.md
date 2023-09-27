@@ -1,6 +1,7 @@
-Code for "Contrastive Lift: 3D Object Instance Segmentation by Slow-Fast Contrastive Fusion" coming soon! [[Paper](https://arxiv.org/abs/2306.04633)]
+Code for "Contrastive Lift: 3D Object Instance Segmentation by Slow-Fast Contrastive Fusion" coming soon!
 
-# Contrastive-Lift | NeurIPS 2023 Spotlight
+# Contrastive-Lift (NeurIPS 2023 Spotlight)
+## [[Project page](https://www.robots.ox.ac.uk/~vgg/research/contrastive-lift/)] [[Paper](https://arxiv.org/abs/2306.04633)]
 
 > **Yash Bhalgat**, Iro Laina, João F. Henriques, Andrew Zisserman, Andrea Vedaldi
 > 
