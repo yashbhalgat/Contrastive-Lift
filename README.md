@@ -41,3 +41,4 @@ If you find this work useful in your research, please cite our paper:
 
 ## Thanks
 This code is based on [Panoptic-Lifting](https://github.com/nihalsid/panoptic-lifting) and [TensoRF](https://github.com/apchenstu/TensoRF) codebases. We thank the authors for releasing their code. 
+
