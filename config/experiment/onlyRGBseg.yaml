@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+    - override /template: panopli_paper
+
+template:
+    experiment: onlyRGBseg
+    max_epoch: 3
+    segment_optimization_epoch: 2

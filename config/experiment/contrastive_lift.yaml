@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+    - override /template: panopli_paper
+
+template:
+    experiment: CONTRASTIVELIFT
+    use_distilled_features_semantic: False
+    use_distilled_features_instance: False
+
+    instance_loss_mode: "slow_fast"
+    use_DINO_style: True
+    use_proj: False
+    use_delta: False
+    temperature: 100.0
+    max_instances: 3 # tunable --> 1, 3, 6, 12, 24

@@ -1,0 +1,23 @@
+# @package _global_
+defaults:
+    - override /template: panopli_paper
+
+template:
+    dataset_class: mos # many object scenes
+    experiment: Vanilla_SAMEDENSE
+
+    max_epoch: 8
+    late_semantic_optimization: 2
+    instance_optimization_epoch: 20 # some very high value
+    segment_optimization_epoch: 4 # 2+4=6
+    weight_class_0: 1.0
+    
+    # max_depth: 16 # based on camera positions and spawn region
+    max_depth: 50
+
+    instance_loss_mode: "contrastive"
+    use_DINO_style: False
+    use_proj: False
+    use_delta: False
+    temperature: 100.0
+    max_instances: 3

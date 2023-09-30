@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+    - override /template: panopli_paper
+
+template:
+    dataset_class: mos # many object scenes
+    experiment: RGBonly
+    max_epoch: 5
+    late_semantic_optimization: 20 # some very high value
+    max_depth: 50

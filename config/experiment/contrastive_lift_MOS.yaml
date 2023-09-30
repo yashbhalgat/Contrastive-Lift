@@ -1,0 +1,22 @@
+# @package _global_
+defaults:
+    - override /template: panopli_paper
+
+template:
+    dataset_class: mos # many object scenes
+    experiment: CONTRASTIVE_LIFT
+
+    max_epoch: 8
+    late_semantic_optimization: 2
+    instance_optimization_epoch: 2 # 2+2=4
+    segment_optimization_epoch: 4 # 2+4=6
+    weight_class_0: 1.0
+    
+    max_depth: 50
+
+    instance_loss_mode: "slow_fast"
+    use_DINO_style: True
+    use_proj: False
+    use_delta: False
+    temperature: 100.0
+    max_instances: 3

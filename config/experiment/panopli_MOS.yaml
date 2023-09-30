@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+    - override /template: panopli_paper
+
+template:
+    dataset_class: mos # many object scenes
+    experiment: PANOPLI
+
+    weight_class_0: 1.0
+    
+    max_depth: 50
+
+    instance_loss_mode: "linear_assignment"
+    max_instances: 500

@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+    - override /template: panopli_paper
+
+template:
+    experiment: BOTHMLP_contDim3Delta_ep8_lrd78
+    max_epoch: 8
+    segment_optimization_epoch: 5
+    instance_optimization_epoch: 3
+
+    use_mlp_for_semantics: True
+    use_mlp_for_instances: True
+
+    instance_loss_mode: "contrastive"
+    use_delta: True
+    temperature: 100.0
+    max_instances: 3
+
+    decay_step: [7,8]
+    decay_gamma: 0.2

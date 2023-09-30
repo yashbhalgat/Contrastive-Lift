@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+    - override /template: panopli_paper
+
+template:
+    dataset_class: panopli
+    experiment: RGBonly
+    max_epoch: 5
+    late_semantic_optimization: 20 # some very high value
+
