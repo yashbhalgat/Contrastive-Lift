@@ -12,6 +12,8 @@
 You can download the Messy Rooms dataset from [here](https://figshare.com/s/b195ce8bd8eafe79762b). For all other datasets, refer to
 the instructions provided in [Panoptic-Lifting](https://github.com/nihalsid/panoptic-lifting)
 
+**NOTE**: In this codebase, the term "MOS" stands for "Many Object Scenes", which was the original name of the "Messy Rooms" dataset as referenced in the paper.
+
 You can download the **pretrained checkpoints** from [here](https://figshare.com/s/9274111d32b390a870d8).
 
 ## Inference and Evaluation
