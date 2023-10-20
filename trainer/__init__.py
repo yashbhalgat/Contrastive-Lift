@@ -68,7 +68,7 @@ def create_trainer(name, config):
         config.seed = randint(0, 999)
     if isinstance(config.image_dim, int):
         config.image_dim = [config.image_dim, config.image_dim]
-    assert config.image_dim[0] == config.image_dim[1], "only 1:1 supported"  # TODO: fix dataprocessing bug limiting this
+    # assert config.image_dim[0] == config.image_dim[1], "only 1:1 supported"  # TODO: fix dataprocessing bug limiting this
 
     seed_everything(config.seed)
 
