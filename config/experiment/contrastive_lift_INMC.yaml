@@ -6,19 +6,21 @@ template:
     experiment: CONTRASTIVE_LIFT_INMC
 
     probabilistic_ce_mode: "NoTTAConf"
+    segment_grouping_mode: 'none' # No distilled features
+    use_distilled_features_semantic: False
+    use_distilled_features_instance: False
+    use_gt_inssem: True
+
     instance_loss_mode: "slow_fast"
     use_DINO_style: True
     use_proj: False
     use_delta: False
     temperature: 100.0
     max_instances: 3 # tunable --> 1, 3, 6, 12, 24
-    max_epoch: 8
-    late_semantic_optimization: 2
-    instance_optimization_epoch: 2 # 2+2=4
-    segment_optimization_epoch: 4 # 2+4=6
     weight_class_0: 1.0
 
-    max_depth: 2
+    max_depth: 3
     image_dim: [720, 1280]
+    # image_dim: [360, 640]
 
     dataset_root: "data/itw/raw/0821_hd"

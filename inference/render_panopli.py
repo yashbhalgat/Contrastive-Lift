@@ -48,13 +48,21 @@ def render_panopli_checkpoint(
     device = torch.device("cuda:0")
 
     if config.dataset_class == "panopli":
+        # test for blender / inmc
         test_set = PanopLiDataset(
             Path(config.dataset_root), "test", (config.image_dim[0], config.image_dim[1]),
-            config.max_depth, overfit=config.overfit, semantics_dir='m2f_semantics',
-            instance_dir='m2f_instance', instance_to_semantic_key='m2f_instance_to_semantic',
+            config.max_depth, overfit=config.overfit, semantics_dir='rs_semantics',
+            instance_dir='rs_instance', instance_to_semantic_key='rs_instance_to_semantic',
             create_seg_data_func=create_segmentation_data_panopli,
             subsample_frames=config.subsample_frames
         )
+        # test_set = PanopLiDataset(
+        #     Path(config.dataset_root), "test", (config.image_dim[0], config.image_dim[1]),
+        #     config.max_depth, overfit=config.overfit, semantics_dir='m2f_semantics',
+        #     instance_dir='m2f_instance', instance_to_semantic_key='m2f_instance_to_semantic',
+        #     create_seg_data_func=create_segmentation_data_panopli,
+        #     subsample_frames=config.subsample_frames
+        # )
     elif config.dataset_class == "mos":
         test_set = MOSDataset(
             Path(config.dataset_root), "test", (config.image_dim[0], config.image_dim[1]),
@@ -175,6 +183,7 @@ def render_panopli_checkpoint(
     for i, _ in enumerate(all_points_rgb):
         name = f"{test_set.all_frame_names[test_set.val_indices[i]]}.png" if test_only else f"{i:04d}.png"
         p_rgb, p_semantics, p_instances, p_depth = all_points_rgb[i], all_points_semantics[i], all_points_instances[i], all_points_depth[i]
+        p_rgb, p_semantics, p_instances, p_depth = p_rgb.cpu(), p_semantics.cpu(), p_instances.cpu(), p_depth.cpu()
         stack = visualize_panoptic_outputs(
             p_rgb, p_semantics, p_instances, p_depth, None, None, None,
             H, W, thing_classes=test_set.segmentation_data.fg_classes, visualize_entropy=False
@@ -255,7 +264,8 @@ def cluster(all_thing_features, bandwidth, device, num_images=None, use_dbscan=F
     all_labels = all_labels + 1 # -1,0,...,K-1 -> 0,1,...,K
     all_labels_onehot = np.zeros((all_labels.shape[0], centroids.shape[0]+1))
     all_labels_onehot[np.arange(all_labels.shape[0]), all_labels] = 1
-    all_points_instances = torch.from_numpy(all_labels_onehot).view(num_images, -1, centroids.shape[0]+1).to(device)
+    # all_points_instances = torch.from_numpy(all_labels_onehot).view(num_images, -1, centroids.shape[0]+1).to(device)
+    all_points_instances = torch.from_numpy(all_labels_onehot).view(num_images, -1, centroids.shape[0]+1)
     return all_points_instances
 
 def cluster_segmentwise(all_thing_features, all_points_semantics, bandwidth, device, num_images=None,
@@ -329,13 +339,17 @@ def cluster_segmentwise(all_thing_features, all_points_semantics, bandwidth, dev
             if np.any(labels != -1): # i.e. if there are clusters
                 centroids = np.stack([clusterer.weighted_cluster_centroid(cluster_id=cluster_id) \
                                       for cluster_id in np.unique(labels) if cluster_id != -1])
-                distances = torch.zeros((thing_cls_features.shape[0], centroids.shape[0]), device=device)
+                # distances = torch.zeros((thing_cls_features.shape[0], centroids.shape[0]), device=device)
+                # mitigate OOM
+                distances = torch.zeros((thing_cls_features.shape[0], centroids.shape[0]), device='cpu')
                 chunksize = 10**7
                 thing_cls_features_rescaled = (thing_cls_features.reshape(-1, thing_cls_features.shape[-1]) - rescaling_bias) * rescaling_factor
                 for i in range(0, thing_cls_features.shape[0], chunksize):
                     distances[i:i+chunksize] = torch.cdist(
-                        torch.FloatTensor(thing_cls_features_rescaled[i:i+chunksize]).to(device),
-                        torch.FloatTensor(centroids).to(device)
+                        # torch.FloatTensor(thing_cls_features_rescaled[i:i+chunksize]).to(device),
+                        # torch.FloatTensor(centroids).to(device)
+                        torch.FloatTensor(thing_cls_features_rescaled[i:i+chunksize]),
+                        torch.FloatTensor(centroids)
                     )
                 thing_cls_all_labels = torch.argmin(distances, dim=-1).cpu().numpy()
             else:
@@ -362,7 +376,8 @@ def cluster_segmentwise(all_thing_features, all_points_semantics, bandwidth, dev
     print("Num unique labels: ", num_unique_labels)
     all_labels_onehot = np.zeros((all_labels.shape[0], num_unique_labels))
     all_labels_onehot[np.arange(all_labels.shape[0]), all_labels] = 1
-    all_points_instances = torch.from_numpy(all_labels_onehot).view(num_images, -1, num_unique_labels).to(device)
+    # all_points_instances = torch.from_numpy(all_labels_onehot).view(num_images, -1, num_unique_labels).to(device)
+    all_points_instances = torch.from_numpy(all_labels_onehot).view(num_images, -1, num_unique_labels)
 
     all_centroids = np.concatenate(all_centroids, axis=0) # (num_clusters, 3)
     return all_points_instances, all_centroids

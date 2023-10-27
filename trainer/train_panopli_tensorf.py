@@ -38,7 +38,7 @@ torch.backends.cudnn.deterministic = False
 class TensoRFTrainer(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
-        self.train_set, self.val_set = get_dataset(config)
+        self.train_set, self.val_set = get_dataset(config, use_gt_inssem=config.use_gt_inssem)
         if config.visualized_indices is None:
             config.visualized_indices = list(range(0, len(self.val_set), int(1 / 0.15)))
             if len(config.visualized_indices) < 16:
@@ -48,7 +48,7 @@ class TensoRFTrainer(pl.LightningModule):
         self.config = config
         self.current_lambda_dist_reg = 0
         if self.config.segment_grouping_mode != "none":
-            self.train_segment_set = get_segment_dataset(self.config)
+            self.train_segment_set = get_segment_dataset(self.config, self.config.use_gt_inssem)
         self.save_hyperparameters(config)
         total_classes = len(self.train_set.segmentation_data.bg_classes) + len(self.train_set.segmentation_data.fg_classes)
         output_mlp_semantics = torch.nn.Identity() if self.config.semantic_weight_mode != "softmax" else torch.nn.Softmax(dim=-1)
@@ -433,7 +433,7 @@ class TensoRFTrainer(pl.LightningModule):
         loaders = {
             0: DataLoader(self.train_set, self.config.batch_size, shuffle=True, pin_memory=True, drop_last=True, num_workers=self.config.num_workers)
         }
-        train_instance_set = get_inconsistent_single_dataset(self.config)
+        train_instance_set = get_inconsistent_single_dataset(self.config, use_gt_inssem=self.config.use_gt_inssem)
         assert len(train_instance_set) > 0, "Warning: Empty instance dataset"
         loaders[1] = DataLoader(train_instance_set, self.config.batch_size_contrastive, shuffle=True, drop_last=True, collate_fn=train_instance_set.collate_fn, num_workers=0)
         if self.config.segment_grouping_mode != "none":

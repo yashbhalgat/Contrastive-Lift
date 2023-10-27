@@ -15,7 +15,7 @@ import os
 from dataset.preprocessing.preprocess_scannet import create_validation_set, map_panoptic_coco, visualize_mask_folder, get_keyframe_indices, \
     from_ours_to_replica_traj_w_c, create_instances_for_dmnerf, get_thing_semantics
 
-raw_path = Path("/cluster/gimli/ysiddiqui/nerf-lightning-data/itw/raw/")
+raw_path = Path("/data1/sangminkim/nerf/Contrastive-Lift/data/itw/raw/")
 
 
 def copy_color(src_folder, fraction):
@@ -38,42 +38,48 @@ def rename_and_copy_transforms(src_folder):
     (src_folder / "transforms.json").write_text(json.dumps(transforms))
 
 
-def create_poses_without_undistortion(src_folder):
-    color_folder = src_folder / "color_distorted"
-    image_files = sorted(list(color_folder.iterdir()), key=lambda x: int(x.stem))
-    if Path(src_folder, "color").exists():
-        shutil.rmtree(Path(src_folder, "color"))
-    if Path(src_folder, "panoptic").exists():
-        shutil.rmtree(Path(src_folder, "panoptic"))
-    Path(src_folder, "color").mkdir()
-    Path(src_folder, "panoptic").mkdir()
-    transforms = json.loads((src_folder / "transforms.json").read_text())
-    for idx, image_file in enumerate(tqdm(image_files)):
-        Image.open(image_file).save(Path(src_folder, "color") / image_file.name)
-    h, w, cx, cy = int(transforms["h"]), int(transforms["w"]), transforms["cx"], transforms["cy"]
-    mtx = np.array([[transforms["fl_x"], 0, cx], [0, transforms["fl_y"], cy], [0, 0, 1]])
-    Path(src_folder, "intrinsic").mkdir(exist_ok=True)
-    Path(src_folder, "intrinsic", "intrinsic_color.txt").write_text(
-        f"""{mtx[0, 0]} {mtx[0, 1]} {mtx[0, 2]} 0.00\n{mtx[1, 0]} {mtx[1, 1]} {mtx[1, 2]} 0.00\n{mtx[2, 0]} {mtx[2, 1]} {mtx[2, 2]} 0.00\n0.00 0.00 0.00 1.00""")
+# def create_poses_without_undistortion(src_folder):
+#     color_folder = src_folder / "color_distorted"
+#     image_files = sorted(list(color_folder.iterdir()), key=lambda x: int(x.stem))
+#     if Path(src_folder, "color").exists():
+#         shutil.rmtree(Path(src_folder, "color"))
+#     if Path(src_folder, "panoptic").exists():
+#         shutil.rmtree(Path(src_folder, "panoptic"))
+#     Path(src_folder, "color").mkdir()
+#     Path(src_folder, "panoptic").mkdir()
+#     transforms = json.loads((src_folder / "transforms.json").read_text())
+#     for idx, image_file in enumerate(tqdm(image_files)):
+#         Image.open(image_file).save(Path(src_folder, "color") / image_file.name)
+#     h, w, cx, cy = int(transforms["h"]), int(transforms["w"]), transforms["cx"], transforms["cy"]
+#     mtx = np.array([[transforms["fl_x"], 0, cx], [0, transforms["fl_y"], cy], [0, 0, 1]])
+#     Path(src_folder, "intrinsic").mkdir(exist_ok=True)
+#     Path(src_folder, "intrinsic", "intrinsic_color.txt").write_text(
+#         f"""{mtx[0, 0]} {mtx[0, 1]} {mtx[0, 2]} 0.00\n{mtx[1, 0]} {mtx[1, 1]} {mtx[1, 2]} 0.00\n{mtx[2, 0]} {mtx[2, 1]} {mtx[2, 2]} 0.00\n0.00 0.00 0.00 1.00""")
 
-    Path(src_folder, "pose").mkdir(exist_ok=True)
-    flip_mat = np.array([
-        [1, 0, 0, 0],
-        [0, -1, 0, 0],
-        [0, 0, -1, 0],
-        [0, 0, 0, 1]
-    ])
+#     Path(src_folder, "pose").mkdir(exist_ok=True)
+#     flip_mat = np.array([
+#         [1, 0, 0, 0],
+#         [0, -1, 0, 0],
+#         [0, 0, -1, 0],
+#         [0, 0, 0, 1]
+#     ])
+#     fix_pose_mat = np.array([
+#         [0, -1, 0, 0],
+#         [1, 0, 0, 0],
+#         [0, 0, 1, 0],
+#         [0, 0, 0, 1]
+#     ])
 
-    for frame in transforms['frames']:
-        filepath = Path(frame['file_path'])
-        RT = np.array(frame['transform_matrix']) @ flip_mat
-        Path(src_folder, "pose", f'{filepath.stem}.txt').write_text(f"""{RT[0, 0]} {RT[0, 1]} {RT[0, 2]} {RT[0, 3]}\n{RT[1, 0]} {RT[1, 1]} {RT[1, 2]} {RT[1, 3]}\n{RT[2, 0]} {RT[2, 1]} {RT[2, 2]} {RT[2, 3]}\n0.00 0.00 0.00 1.00""")
+#     for frame in transforms['frames']:
+#         filepath = Path(frame['file_path'])
+#         RT = np.linalg.inv(np.array(frame['transform_matrix']) @ flip_mat @ fix_pose_mat @ flip_mat)
+#         Path(src_folder, "pose", f'{filepath.stem}.txt').write_text(f"""{RT[0, 0]} {RT[0, 1]} {RT[0, 2]} {RT[0, 3]}\n{RT[1, 0]} {RT[1, 1]} {RT[1, 2]} {RT[1, 3]}\n{RT[2, 0]} {RT[2, 1]} {RT[2, 2]} {RT[2, 3]}\n0.00 0.00 0.00 1.00""")
 
-    pose_files = [x.stem for x in (src_folder / "pose").iterdir()]
-    image_files = [x.stem for x in (src_folder / "color").iterdir()]
-    to_remove = list(set(image_files) - set(pose_files))
-    for f in to_remove:
-        os.remove(src_folder / "color" / f"{f}.jpg")
+#     pose_files = [x.stem for x in (src_folder / "pose").iterdir()]
+#     image_files = [x.stem for x in (src_folder / "color").iterdir()]
+#     to_remove = list(set(image_files) - set(pose_files))
+#     for f in to_remove:
+#         os.remove(src_folder / "color" / f"{f}.jpg")
 
 
 def create_undistorted_images(src_folder):
@@ -87,7 +93,7 @@ def create_undistorted_images(src_folder):
     Path(src_folder, "panoptic").mkdir()
     all_images = []
     for image_file in tqdm(image_files, desc='read'):
-        all_images.append(np.array(Image.open(image_file))[np.newaxis, :, :, :])
+        all_images.append(np.array(Image.open(image_file).convert("RGB"))[np.newaxis, :, :, :])
     all_images = np.concatenate(all_images, axis=0)
     transforms = json.loads((src_folder / "transforms.json").read_text())
     if "camera_model" in transforms and transforms["camera_model"] == "OPENCV_FISHEYE":
@@ -125,10 +131,20 @@ def create_undistorted_images(src_folder):
         [0, 0, -1, 0],
         [0, 0, 0, 1]
     ])
+    fix_pose_mat = np.array([
+        [0, -1, 0, 0],
+        [1, 0, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]
+    ])
 
     for frame in transforms['frames']:
         filepath = Path(frame['file_path'])
-        RT = np.array(frame['transform_matrix']) @ flip_mat
+        if 'blender' in src_folder.name:
+            RT = np.array(frame['transform_matrix']) @ flip_mat # blender
+        else:
+            RT = np.array(frame['transform_matrix']) @ flip_mat @ fix_pose_mat @ flip_mat # inmc
+
         Path(src_folder, "pose", f'{filepath.stem}.txt').write_text(f"""{RT[0, 0]} {RT[0, 1]} {RT[0, 2]} {RT[0, 3]}\n{RT[1, 0]} {RT[1, 1]} {RT[1, 2]} {RT[1, 3]}\n{RT[2, 0]} {RT[2, 1]} {RT[2, 2]} {RT[2, 3]}\n0.00 0.00 0.00 1.00""")
 
     pose_files = [x.stem for x in (src_folder / "pose").iterdir()]
@@ -192,27 +208,29 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dest = Path(args.root_path)
 
-    # copy distorted images from raw to root
-    copy_color(dest, fraction=1)
-    # copy transforms json
-    rename_and_copy_transforms(dest)
-    # create segmentation data stub
-    create_segmentation_data(dest, sc_classes='extended')
-    # undistort images
-    create_undistorted_images(dest)
-    # create_poses_without_undistortion(dest)
-    # create validation set (15% to 25%)
-    create_validation_set(dest, 0.15)
-    # make sure to run mask2former before this step
-    # run mask2former segmentation data mapping
-    map_panoptic_coco(dest, sc_classes='extended')
-    # visualize labels
-    visualize_mask_folder(dest / "m2f_semantics")
-    visualize_mask_folder(dest / "m2f_instance")
-    visualize_mask_folder(dest / "m2f_notta_semantics")
-    visualize_mask_folder(dest / "m2f_notta_instance")
-    # copy predicted labels as GT, since we don't have GT
-    shutil.copytree(dest / "m2f_semantics", dest / "semantics")
-    shutil.copytree(dest / "m2f_instance", dest / "instance")
-    shutil.copytree(dest / "m2f_semantics", dest / "rs_semantics")
-    shutil.copytree(dest / "m2f_instance", dest / "rs_instance")
+    if True:
+        # copy distorted images from raw to root
+        copy_color(dest, fraction=1)
+        # copy transforms json
+        rename_and_copy_transforms(dest)
+        # create segmentation data stub
+        # create_segmentation_data(dest, sc_classes='extended')
+        # undistort images
+        create_undistorted_images(dest)
+        # create_poses_without_undistortion(dest)
+        # create validation set (15% to 25%)
+        create_validation_set(dest, 0.15)
+    else:
+        # make sure to run mask2former before this step
+        # run mask2former segmentation data mapping
+        map_panoptic_coco(dest, sc_classes='extended')
+        # visualize labels
+        visualize_mask_folder(dest / "m2f_semantics")
+        visualize_mask_folder(dest / "m2f_instance")
+        visualize_mask_folder(dest / "m2f_notta_semantics")
+        visualize_mask_folder(dest / "m2f_notta_instance")
+        # copy predicted labels as GT, since we don't have GT
+        shutil.copytree(dest / "m2f_semantics", dest / "semantics")
+        shutil.copytree(dest / "m2f_instance", dest / "instance")
+        shutil.copytree(dest / "m2f_semantics", dest / "rs_semantics")
+        shutil.copytree(dest / "m2f_instance", dest / "rs_instance")

@@ -86,6 +86,7 @@ def create_trainer(name, config):
 
     checkpoint_callback = ModelCheckpoint(dirpath=(Path("runs") / config.experiment / "checkpoints"),
                                           save_top_k=-1,
+                                          save_last=True,
                                           verbose=False,
                                           every_n_train_steps=config.save_every_n_train_steps,
                                         #   every_n_epochs=config.save_epoch

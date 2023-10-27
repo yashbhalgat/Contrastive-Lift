@@ -1,7 +1,7 @@
 experiment: fast_dev
 seed: null
 save_epoch: 1
-save_every_n_train_steps: 500
+save_every_n_train_steps: 50000
 sanity_steps: -1
 max_epoch: 10
 val_check_percent: 1.0
@@ -85,6 +85,8 @@ visualized_indices: null
 
 wandb_main: False # set to true to log to main board rather than debug board
 suffix: ''
+
+use_gt_inssem: False
 
 hydra:
   output_subdir: null # Disable saving of config files. We'll do that ourselves.

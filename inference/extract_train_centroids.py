@@ -41,11 +41,17 @@ def render_panopli_checkpoint(
     device = torch.device("cuda:0")
     
     if config.dataset_class == "panopli":
+        # blender / inmc
         train_set = PanopLiDataset(
             Path(config.dataset_root), "train", (config.image_dim[0], config.image_dim[1]),
-            config.max_depth, overfit=config.overfit, semantics_dir='m2f_semantics', instance_dir='m2f_instance',
-            instance_to_semantic_key='m2f_instance_to_semantic', create_seg_data_func=create_segmentation_data_panopli,
+            config.max_depth, overfit=config.overfit, semantics_dir='rs_semantics', instance_dir='rs_instance',
+            instance_to_semantic_key='rs_instance_to_semantic', create_seg_data_func=create_segmentation_data_panopli,
             subsample_frames=config.subsample_frames, do_not_load=True)
+        # train_set = PanopLiDataset(
+        #     Path(config.dataset_root), "train", (config.image_dim[0], config.image_dim[1]),
+        #     config.max_depth, overfit=config.overfit, semantics_dir='m2f_semantics', instance_dir='m2f_instance',
+        #     instance_to_semantic_key='m2f_instance_to_semantic', create_seg_data_func=create_segmentation_data_panopli,
+        #     subsample_frames=config.subsample_frames, do_not_load=True)
     elif config.dataset_class == "mos":
         train_set = MOSDataset(
             Path(config.dataset_root), "test", (config.image_dim[0], config.image_dim[1]),
@@ -340,7 +346,7 @@ if __name__ == "__main__":
     TEST_MODE = not args.render_trajectory
     cfg.subsample_frames = args.subsample
     
-    cfg.image_dim = [256, 384]
+    # cfg.image_dim = [256, 384]
     if isinstance(cfg.image_dim, int):
         cfg.image_dim = [cfg.image_dim, cfg.image_dim]
     
