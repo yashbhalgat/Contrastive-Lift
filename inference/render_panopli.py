@@ -462,7 +462,7 @@ if __name__ == "__main__":
     TEST_MODE = not args.render_trajectory
     cfg.subsample_frames = args.subsample
 
-    cfg.image_dim = [256, 384]    
+    # cfg.image_dim = [256, 384]    
     if isinstance(cfg.image_dim, int):
         cfg.image_dim = [cfg.image_dim, cfg.image_dim]
 

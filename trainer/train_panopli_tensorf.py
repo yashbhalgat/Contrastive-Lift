@@ -408,7 +408,7 @@ class TensoRFTrainer(pl.LightningModule):
         print(tabulate(table, headers='firstrow', tablefmt='fancy_grid'))
         H, W = self.config.image_dim[0], self.config.image_dim[1]
         (self.output_dir_result_clusters / f"{self.global_step:06d}").mkdir(exist_ok=True)
-        # self.renderer.export_instance_clusters(self.model, self.output_dir_result_clusters / f"{self.global_step:06d}")
+        self.renderer.export_instance_clusters(self.model, self.output_dir_result_clusters / f"{self.global_step:06d}")
         for batch_idx, batch in enumerate(self.val_dataloader()):
             if batch_idx in self.config.visualized_indices:
                 rays, rgbs, semantics, instances = batch['rays'].squeeze().to(self.device), batch['rgbs'].squeeze().to(self.device), \

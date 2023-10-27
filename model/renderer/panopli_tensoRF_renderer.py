@@ -28,6 +28,8 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_efficient_distloss import eff_distloss
+import open3d as o3d
+import numpy as np
 
 from util.distinct_colors import DistinctColors
 from util.misc import visualize_points
@@ -642,6 +644,11 @@ class TensoRFRenderer(nn.Module):
             distilled_feature = tensorf.compute_distilled_feature(xyz_sampled.view(-1, 3)).reshape([xyz_sampled.shape[0], xyz_sampled.shape[1], xyz_sampled.shape[2], -1])
             disfilled_feats = tensorf.render_feature_mlp(None, distilled_feature) # [B, H, W, C]
 
+        semantic_features = tensorf.compute_semantic_feature(xyz_sampled.view(-1, 3)).reshape([xyz_sampled.shape[0], xyz_sampled.shape[1], xyz_sampled.shape[2], -1])
+        semantics = tensorf.render_semantic_mlp(None, semantic_features)
+        semantics = semantics.argmax(dim=-1).transpose(0, 2).contiguous()
+        thing_mask = semantics == 1
+
         instance_features = tensorf.compute_instance_feature(xyz_sampled.view(-1, 3)).reshape([xyz_sampled.shape[0], xyz_sampled.shape[1], xyz_sampled.shape[2], -1])
         labels = tensorf.render_instance_mlp(
                                                 disfilled_feats if tensorf.use_distilled_features_instance else None,
@@ -658,6 +665,7 @@ class TensoRFRenderer(nn.Module):
         else:
             max_samples = 2 ** 18
             mask = alpha > 0.5
+            mask = mask & thing_mask
             valid_xyz = dense_xyz[mask]
             labels = labels[mask.view(-1)]
         selected_indices = random.sample(list(range(valid_xyz.shape[0])), min(max_samples, valid_xyz.shape[0]))
@@ -776,10 +784,20 @@ class TensoRFRenderer(nn.Module):
         color_manager = DistinctColors()
         c_xyz, c_label = self.get_instance_clusters(tensorf, mode='alpha')
         colors = color_manager.apply_colors_fast_torch(c_label.cpu().long())
-        visualize_points(c_xyz.cpu().numpy(), output_directory / f"alpha.obj", colors=colors.numpy())
+
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(c_xyz.cpu().numpy())
+        pcd.colors = o3d.utility.Vector3dVector(colors.cpu().numpy().astype(np.float))
+        o3d.io.write_point_cloud((output_directory / f"alpha.ply").as_posix(), pcd)
+
+        # visualize_points(c_xyz.cpu().numpy(), output_directory / f"alpha.obj", colors=colors.numpy())
         c_xyz, c_label = self.get_instance_clusters(tensorf, mode='full')
         colors = color_manager.apply_colors_fast_torch(c_label.cpu().long())
-        visualize_points(c_xyz.cpu().numpy(), output_directory / f"full.obj", colors=colors.numpy())
+        # visualize_points(c_xyz.cpu().numpy(), output_directory / f"full.obj", colors=colors.numpy())
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(c_xyz.cpu().numpy())
+        pcd.colors = o3d.utility.Vector3dVector(colors.cpu().numpy().astype(np.float))
+        o3d.io.write_point_cloud((output_directory / f"full.ply").as_posix(), pcd)
 
 
 def split_points_minimal(xyz, extents, positions, orientations):
