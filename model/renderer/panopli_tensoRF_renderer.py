@@ -636,8 +636,20 @@ class TensoRFRenderer(nn.Module):
         return (xyz_sampled - self.bbox_aabb[0]) * self.inv_box_extent - 1
 
     @torch.no_grad()
-    def get_instance_clusters(self, tensorf, mode):
-        alpha, dense_xyz = self.get_dense_alpha(tensorf)
+    def get_instance_clusters(self, tensorf, scene2normscene, bbox_icf, sample_res, mode):
+        # ADD [KSM, 20231030]:
+        #   fair comparison with icf
+
+        # calculate grid resolution (from dvgo.py)
+        voxel_size = ((bbox_icf[1] - bbox_icf[0]).prod() / sample_res).pow(1/3)
+        grid_dim = ((bbox_icf[1] - bbox_icf[0]) / voxel_size).long()
+
+        # calculate sample region
+        min_val = scene2normscene @ torch.cat((bbox_icf[0], torch.tensor([1])))
+        max_val = scene2normscene @ torch.cat((bbox_icf[1], torch.tensor([1])))
+        sample_roi = torch.stack([min_val[:3], max_val[:3]]).to(tensorf.density_line[0].device)
+        
+        alpha, dense_xyz = self.get_dense_alpha(tensorf, grid_dim, sample_roi)
         xyz_sampled = self.normalize_coordinates(dense_xyz)
 
         if tensorf.use_distilled_features_semantic or tensorf.use_distilled_features_instance:
@@ -655,7 +667,8 @@ class TensoRFRenderer(nn.Module):
                                                 instance_features
                                             )
         dense_xyz = dense_xyz.transpose(0, 2).contiguous()
-        labels = labels.transpose(0, 2).contiguous().view([xyz_sampled.shape[0] * xyz_sampled.shape[1] * xyz_sampled.shape[2], -1]).argmax(dim=1).int()
+        # labels = labels.transpose(0, 2).contiguous().view([xyz_sampled.shape[0] * xyz_sampled.shape[1] * xyz_sampled.shape[2], -1]).argmax(dim=1).int()
+        labels = labels.transpose(0, 2).contiguous().view([xyz_sampled.shape[0] * xyz_sampled.shape[1] * xyz_sampled.shape[2], -1])
         alpha = alpha.clamp(0, 1).transpose(0, 2).contiguous()
         alpha[alpha >= self.alpha_mask_threshold] = 1
         alpha[alpha < self.alpha_mask_threshold] = 0
@@ -670,6 +683,12 @@ class TensoRFRenderer(nn.Module):
             labels = labels[mask.view(-1)]
         selected_indices = random.sample(list(range(valid_xyz.shape[0])), min(max_samples, valid_xyz.shape[0]))
         valid_xyz = valid_xyz[selected_indices, :]
+        # unnormalize xyz
+        normscene2scene = torch.linalg.inv(scene2normscene).to(valid_xyz)
+        padding = torch.ones(valid_xyz.shape[0]).to(valid_xyz)
+        valid_xyz = torch.cat([valid_xyz, padding[:, None].to(valid_xyz)], dim=-1)
+        valid_xyz = (normscene2scene @ valid_xyz.T).T
+        valid_xyz = valid_xyz[:, :3]
         valid_labels = labels[selected_indices]
         return valid_xyz, valid_labels
 
@@ -723,17 +742,26 @@ class TensoRFRenderer(nn.Module):
             print(f"[{self.instance_id:02d}] no valid voxels found ...")
 
     @torch.no_grad()
-    def get_dense_alpha(self, tensorf):
+    def get_dense_alpha(self, tensorf, grid_dim=None, sample_roi=None):
+        if grid_dim == None:
+            grid_dim = self.grid_dim
+
         samples = torch.stack(torch.meshgrid(
-            torch.linspace(0, 1, self.grid_dim[0]),
-            torch.linspace(0, 1, self.grid_dim[1]),
-            torch.linspace(0, 1, self.grid_dim[2]),
+            torch.linspace(0, 1, grid_dim[0]),
+            torch.linspace(0, 1, grid_dim[1]),
+            torch.linspace(0, 1, grid_dim[2]),
             indexing='ij'
         ), -1).to(tensorf.density_line[0].device)
-        dense_xyz = self.bbox_aabb[0] * (1 - samples) + self.bbox_aabb[1] * samples
+
+        # sample on target region
+        if sample_roi == None:
+            dense_xyz = self.bbox_aabb[0] * (1 - samples) + self.bbox_aabb[1] * samples
+        else:
+            dense_xyz = sample_roi[0] * (1 - samples) + sample_roi[1] * samples
+
         alpha = torch.zeros_like(dense_xyz[..., 0])
-        for i in range(self.grid_dim[0]):
-            alpha[i] = self.compute_alpha(tensorf, dense_xyz[i].view(-1, 3), self.step_size).view((self.grid_dim[1], self.grid_dim[2]))
+        for i in range(grid_dim[0]):
+            alpha[i] = self.compute_alpha(tensorf, dense_xyz[i].view(-1, 3), self.step_size).view((grid_dim[1], grid_dim[2]))
         return alpha, dense_xyz
 
     def compute_sigma(self, tensorf, xyz_locs):
@@ -780,10 +808,12 @@ class TensoRFRenderer(nn.Module):
     def orientation(self):
         return torch.eye(3, device=self.bbox_aabb.device)
 
-    def export_instance_clusters(self, tensorf, output_directory):
+    def export_instance_clusters(self, tensorf, output_directory, scene2normscene, bbox_icf, sample_res):
         color_manager = DistinctColors()
-        c_xyz, c_label = self.get_instance_clusters(tensorf, mode='alpha')
-        colors = color_manager.apply_colors_fast_torch(c_label.cpu().long())
+        c_xyz, c_label = self.get_instance_clusters(tensorf, scene2normscene, bbox_icf, sample_res, mode='alpha')
+        # use fast features, normalize to [0, 1]
+        colors = (c_label[..., :3] - c_label.min()) / (c_label.max() - c_label.min())
+        # colors = color_manager.apply_colors_fast_torch(c_label.cpu().long())
 
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(c_xyz.cpu().numpy())
@@ -791,8 +821,9 @@ class TensoRFRenderer(nn.Module):
         o3d.io.write_point_cloud((output_directory / f"alpha.ply").as_posix(), pcd)
 
         # visualize_points(c_xyz.cpu().numpy(), output_directory / f"alpha.obj", colors=colors.numpy())
-        c_xyz, c_label = self.get_instance_clusters(tensorf, mode='full')
-        colors = color_manager.apply_colors_fast_torch(c_label.cpu().long())
+        c_xyz, c_label = self.get_instance_clusters(tensorf, scene2normscene, bbox_icf, sample_res, mode='full')
+        colors = (c_label[..., :3] - c_label.min()) / (c_label.max() - c_label.min())
+        # colors = color_manager.apply_colors_fast_torch(c_label.cpu().long())
         # visualize_points(c_xyz.cpu().numpy(), output_directory / f"full.obj", colors=colors.numpy())
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(c_xyz.cpu().numpy())

@@ -762,7 +762,10 @@ def calculate_panoptic_quality_per_frame_folders(path_pred_sem, path_pred_inst, 
 
 def create_validation_set(src_folder, fraction):
     all_frames = [x.stem for x in sorted(list((src_folder / "color").iterdir()), key=lambda x: int(x.stem))]
-    selected_val = [all_frames[i] for i in range(0, len(all_frames), int(1 / fraction))]
+    if 'blender' in src_folder.name:
+        selected_val = [all_frames[i] for i in range(1, len(all_frames), int(1 / fraction))]
+    else:
+        selected_val = [all_frames[i] for i in range(0, len(all_frames), int(1 / fraction))]
     selected_train = [x for x in all_frames if x not in selected_val]
     print(len(selected_train), len(selected_val))
     Path(src_folder / "splits.json").write_text(json.dumps({

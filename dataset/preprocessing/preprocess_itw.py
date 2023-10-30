@@ -15,7 +15,7 @@ import os
 from dataset.preprocessing.preprocess_scannet import create_validation_set, map_panoptic_coco, visualize_mask_folder, get_keyframe_indices, \
     from_ours_to_replica_traj_w_c, create_instances_for_dmnerf, get_thing_semantics
 
-raw_path = Path("/data1/sangminkim/nerf/Contrastive-Lift/data/itw/raw/")
+raw_path = Path("/data1/sangminkim/nerf/codes/Contrastive-Lift/data/itw/raw/")
 
 
 def copy_color(src_folder, fraction):
@@ -219,7 +219,7 @@ if __name__ == "__main__":
         create_undistorted_images(dest)
         # create_poses_without_undistortion(dest)
         # create validation set (15% to 25%)
-        create_validation_set(dest, 0.15)
+        create_validation_set(dest, 0.5)
     else:
         # make sure to run mask2former before this step
         # run mask2former segmentation data mapping

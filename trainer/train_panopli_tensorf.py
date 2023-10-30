@@ -16,6 +16,7 @@ from tabulate import tabulate
 from torchvision.utils import save_image, make_grid
 from torch.utils.data import DataLoader
 from torch_scatter import scatter_mean
+import mmcv
 
 sys.path.append(".")
 from dataset import get_dataset, get_inconsistent_single_dataset, get_segment_dataset
@@ -94,6 +95,13 @@ class TensoRFTrainer(pl.LightningModule):
             self.center_momentum = 0.9
             
         self.validation_step_outputs = []
+
+        eval_cfg = mmcv.Config.fromfile(config.eval_icf_config_path)
+        self.eval_grid_bbox = torch.tensor([
+            eval_cfg['data']['world_bbox'][0:3],
+            eval_cfg['data']['world_bbox'][3:6],
+        ])
+        self.eval_grid_sample_res = eval_cfg['fine_model_and_render']['num_voxels']
 
     def configure_optimizers(self):
         params = self.model.get_optimizable_parameters(self.config.lr * 20, self.config.lr, weight_decay=self.config.weight_decay)
@@ -408,7 +416,9 @@ class TensoRFTrainer(pl.LightningModule):
         print(tabulate(table, headers='firstrow', tablefmt='fancy_grid'))
         H, W = self.config.image_dim[0], self.config.image_dim[1]
         (self.output_dir_result_clusters / f"{self.global_step:06d}").mkdir(exist_ok=True)
-        self.renderer.export_instance_clusters(self.model, self.output_dir_result_clusters / f"{self.global_step:06d}")
+        if self.config.resume:
+            self.renderer.export_instance_clusters(self.model, self.output_dir_result_clusters / f"{self.global_step:06d}",
+                                                self.train_set.scene2normscene, self.eval_grid_bbox, self.eval_grid_sample_res)
         for batch_idx, batch in enumerate(self.val_dataloader()):
             if batch_idx in self.config.visualized_indices:
                 rays, rgbs, semantics, instances = batch['rays'].squeeze().to(self.device), batch['rgbs'].squeeze().to(self.device), \

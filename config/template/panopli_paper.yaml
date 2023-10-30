@@ -80,6 +80,8 @@ reweight_fg: False
 
 dataset_class: "panopli"
 dataset_root: "data/itw/office_0213meeting/"
+eval_icf_config_path: "data/itw/raw/blender_scene/icf_config.py"
+
 image_dim: 512
 visualized_indices: null
 
